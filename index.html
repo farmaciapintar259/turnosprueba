@@ -17,10 +17,20 @@ body {
 }
 
 h1 {
-    padding: 20px;
+    padding-top: 20px;
+    margin-bottom: 5px;
     font-size: 2em;
     color: cyan;
     text-shadow: 0 0 10px cyan;
+}
+
+/* Estilo para el subtítulo que pediste */
+.subtitulo {
+    font-size: 0.75em;
+    color: #a0aec0;
+    margin-top: 0;
+    margin-bottom: 10px;
+    padding: 0 10px;
 }
 
 .container {
@@ -37,6 +47,24 @@ h1 {
 .info {
     font-size: 1.2em;
     margin-bottom: 20px;
+}
+
+/* Estilos para el bloque del temporizador */
+.caja-temporizador {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 10px;
+    font-size: 0.85em;
+}
+
+.contador-reloj {
+    color: cyan;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-top: 5px;
+    text-shadow: 0 0 5px cyan;
 }
 
 button {
@@ -123,12 +151,19 @@ button:hover {
 </div>
 
 <h1>Farmacia de Turno</h1>
+<p class="subtitulo">(LOS TURNOS ARRANCAN A LAS 8AM Y TERMINAN A LAS 8AM DEL DÍA SIGUIENTE)</p>
 
 <div class="container">
     <div class="info">
         <div id="farmaciaNombre" style="font-weight: bold; color: cyan; font-size: 1.5em;"></div>
         <div id="farmaciaDireccion"></div>
         <div id="farmaciaTelefono"></div>
+    </div>
+
+    <!-- Nueva caja para el temporizador incorporada de forma natural -->
+    <div class="caja-temporizador">
+        <div>Siguiente turno (<span id="siguienteFarmacia" style="color: #fff; font-weight: bold;"></span>):</div>
+        <div class="contador-reloj" id="contadorReloj">00h 00m 00s</div>
     </div>
 
     <button id="llamar">📞 Llamar</button>
@@ -158,8 +193,9 @@ const farmacias = {
     'CALPE': { direccion: 'Av. Balbín 3554', telefono: '4455-1514', mapa: 'https://maps.google.com/?q=Av.+Balbin+3554' }
 };
 
-function obtenerFarmacia(dia, mes) {
-    const año = new Date().getFullYear();
+function obtenerFarmacia(dia, mes, año) {
+    // Si no se le pasa año, toma el actual por defecto (mantiene tu lógica intacta)
+    año = año || new Date().getFullYear();
     const fecha = new Date(año, mes - 1, dia);
     const diaSemana = fecha.getDay(); // 0: Domingo, 1: Lunes... 6: Sábado
 
@@ -195,19 +231,62 @@ function obtenerFarmacia(dia, mes) {
     }
 }
 
+// NUEVA FUNCIÓN PARA CALCULAR FECHAS SEGÚN LA REGLA DE LAS 8 AM
+function obtenerFechasTurno() {
+    let ahora = new Date();
+    let fechaTurnoActual = new Date(ahora);
+    let fechaTurnoSiguiente = new Date(ahora);
+
+    // Si es antes de las 8 de la mañana, el turno vigente es el del día anterior
+    if (ahora.getHours() < 8) {
+        fechaTurnoActual.setDate(fechaTurnoActual.getDate() - 1);
+        // El siguiente turno arranca hoy a las 8 AM
+        fechaTurnoSiguiente.setHours(8, 0, 0, 0);
+    } else {
+        // El turno de hoy ya empezó, el siguiente es mañana a las 8 AM
+        fechaTurnoSiguiente.setDate(fechaTurnoSiguiente.getDate() + 1);
+        fechaTurnoSiguiente.setHours(8, 0, 0, 0);
+    }
+
+    return { actual: fechaTurnoActual, siguiente: fechaTurnoSiguiente };
+}
+
 function mostrarTurnoHoy() {
-    let hoy = new Date();
-    let farmaciaHoy = obtenerFarmacia(hoy.getDate(), hoy.getMonth() + 1);
+    let fechas = obtenerFechasTurno();
+    
+    // Obtenemos las farmacias pasando día, mes y año exactos
+    let farmaciaHoy = obtenerFarmacia(fechas.actual.getDate(), fechas.actual.getMonth() + 1, fechas.actual.getFullYear());
+    let farmaciaManana = obtenerFarmacia(fechas.siguiente.getDate(), fechas.siguiente.getMonth() + 1, fechas.siguiente.getFullYear());
 
     document.getElementById('farmaciaNombre').innerText = farmaciaHoy;
     document.getElementById('farmaciaDireccion').innerText = farmacias[farmaciaHoy].direccion;
     document.getElementById('farmaciaTelefono').innerText = farmacias[farmaciaHoy].telefono;
+    document.getElementById('siguienteFarmacia').innerText = farmaciaManana;
 
     document.getElementById('llamar').onclick = () =>
         window.location.href = `tel:${farmacias[farmaciaHoy].telefono}`;
 
     document.getElementById('verMapa').onclick = () =>
         window.open(farmacias[farmaciaHoy].mapa);
+}
+
+// NUEVO: SISTEMA DE CUENTA REGRESIVA (SE ACTUALIZA CADA SEGUNDO)
+function actualizarContador() {
+    let fechas = obtenerFechasTurno();
+    let ahora = new Date();
+    let diferencia = fechas.siguiente - ahora;
+
+    if (diferencia <= 0) {
+        // Si exacto pasamos las 8:00:00 AM, recalculamos la pantalla y los turnos solo
+        mostrarTurnoHoy();
+        return;
+    }
+
+    let horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    let minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+    let segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+
+    document.getElementById('contadorReloj').innerText = `${horas}hs ${minutos}m ${segundos}s`;
 }
 
 function generarCalendarioMes() {
@@ -220,7 +299,7 @@ function generarCalendarioMes() {
     let dias = new Date(año, mes, 0).getDate();
 
     for (let d = 1; d <= dias; d++) {
-        let farmacia = obtenerFarmacia(d, mes);
+        let farmacia = obtenerFarmacia(d, mes, año);
         let li = document.createElement('li');
         li.innerText = `${d}/${mes} - ${farmacia}`;
         lista.appendChild(li);
@@ -230,7 +309,13 @@ function generarCalendarioMes() {
 }
 
 document.getElementById('verCalendario').onclick = generarCalendarioMes;
-document.addEventListener('DOMContentLoaded', mostrarTurnoHoy);
+
+// Iniciamos todo al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    mostrarTurnoHoy();
+    actualizarContador();
+    setInterval(actualizarContador, 1000); // Repetir el reloj cada 1 segundo
+});
 </script>
 
 </body>
