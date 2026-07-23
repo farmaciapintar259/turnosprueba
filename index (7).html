@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmacia de Turno</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Orbitron', sans-serif;
+    background: radial-gradient(circle at top, #0f2027, #203a43, #2c5364);
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    padding: 20px;
+    font-size: 2em;
+    color: cyan;
+    text-shadow: 0 0 10px cyan;
+}
+
+.container {
+    margin: 20px auto;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 25px rgba(0,255,255,0.2);
+}
+
+.info {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 12px;
+    font-size: 1em;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(45deg, #00f2fe, #4facfe);
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px cyan;
+}
+
+.calendar {
+    display: none;
+    margin-top: 20px;
+    text-align: left;
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    border-radius: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.footer {
+    margin-top: 30px;
+    padding: 10px;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+/* Menú */
+.menu-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.menu {
+    display: none;
+    position: fixed;
+    top: 50px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.menu a {
+    display: block;
+    color: cyan;
+    text-decoration: none;
+    margin: 5px 0;
+}
+
+#listaTurnos {
+    list-style: none;
+    padding: 0;
+}
+
+#listaTurnos li {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,255,255,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<div class="menu-toggle" onclick="toggleMenu()">☰</div>
+<div class="menu" id="menu">
+    <a href="#">Reportar error</a>
+    <a href="#">Obras sociales</a>
+</div>
+
+<h1>Farmacia de Turno</h1>
+
+<div class="container">
+    <div class="info">
+        <div id="farmaciaNombre" style="font-weight: bold; color: cyan; font-size: 1.5em;"></div>
+        <div id="farmaciaDireccion"></div>
+        <div id="farmaciaTelefono"></div>
+    </div>
+
+    <button id="llamar">📞 Llamar</button>
+    <button id="verMapa">📍 Ver mapa</button>
+    <button id="verCalendario">📅 Ver calendario</button>
+
+    <div class="calendar" id="calendario">
+        <ul id="listaTurnos"></ul>
+    </div>
+</div>
+
+<div class="footer">
+Farmacia Pintar | San Miguel
+</div>
+
+<script>
+function toggleMenu() {
+    const menu = document.getElementById('menu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+const farmacias = {
+    'MITRE': { direccion: 'Av. Balbín 4247', telefono: '4455-0206', mapa: 'https://maps.google.com/?q=Av.+Balbin+4247' },
+    'SARMIENTO': { direccion: 'Av. Remigio López 3222', telefono: '1159298980', mapa: 'https://maps.google.com/?q=Av.+Remigio+Lopez+3222' },
+    'VAZQUEZ': { direccion: 'Av. Balbín 4702', telefono: '4455-6412', mapa: 'https://maps.google.com/?q=Av.+Balbin+4702' },
+    'PINTAR': { direccion: 'Av. Remigio López 2393', telefono: '4455-5502', mapa: 'https://maps.app.goo.gl/33qsUnATibnjam6E9' },
+    'CALPE': { direccion: 'Av. Balbín 3554', telefono: '4455-1514', mapa: 'https://maps.google.com/?q=Av.+Balbin+3554' }
+};
+
+function obtenerFarmacia(dia, mes) {
+    const año = new Date().getFullYear();
+    const fecha = new Date(año, mes - 1, dia);
+    const diaSemana = fecha.getDay(); // 0: Domingo, 1: Lunes... 6: Sábado
+
+    // 1. LUNES A VIERNES (ORDEN FIJO)
+    const fijos = {
+        1: 'MITRE',
+        2: 'SARMIENTO',
+        3: 'VAZQUEZ',
+        4: 'PINTAR',
+        5: 'CALPE'
+    };
+
+    if (diaSemana >= 1 && diaSemana <= 5) return fijos[diaSemana];
+
+    // 2. SÁBADOS (Ciclo: Mitre -> Calpe -> Sarmiento -> Vázquez -> Pintar)
+    if (diaSemana === 6) {
+        const sabados = ['MITRE', 'CALPE', 'SARMIENTO', 'VAZQUEZ', 'PINTAR'];
+        const fechaBaseSab = new Date(2026, 4, 2); // Sábado 2 de Mayo como referencia
+        const semanasPasadas = Math.floor((fecha - fechaBaseSab) / (7 * 24 * 60 * 60 * 1000));
+        let indice = semanasPasadas % 5;
+        if (indice < 0) indice += 5; // Manejo de fechas anteriores
+        return sabados[indice];
+    }
+
+    // 3. DOMINGOS (Ciclo: Vázquez -> Pintar -> Mitre -> Calpe -> Sarmiento)
+    if (diaSemana === 0) {
+        const domingos = ['VAZQUEZ', 'PINTAR', 'MITRE', 'CALPE', 'SARMIENTO'];
+        const fechaBaseDom = new Date(2026, 4, 3); // Domingo 3 de Mayo como referencia
+        const semanasPasadas = Math.floor((fecha - fechaBaseDom) / (7 * 24 * 60 * 60 * 1000));
+        let indice = semanasPasadas % 5;
+        if (indice < 0) indice += 5;
+        return domingos[indice];
+    }
+}
+
+function mostrarTurnoHoy() {
+    let hoy = new Date();
+    let farmaciaHoy = obtenerFarmacia(hoy.getDate(), hoy.getMonth() + 1);
+
+    document.getElementById('farmaciaNombre').innerText = farmaciaHoy;
+    document.getElementById('farmaciaDireccion').innerText = farmacias[farmaciaHoy].direccion;
+    document.getElementById('farmaciaTelefono').innerText = farmacias[farmaciaHoy].telefono;
+
+    document.getElementById('llamar').onclick = () =>
+        window.location.href = `tel:${farmacias[farmaciaHoy].telefono}`;
+
+    document.getElementById('verMapa').onclick = () =>
+        window.open(farmacias[farmaciaHoy].mapa);
+}
+
+function generarCalendarioMes() {
+    const lista = document.getElementById('listaTurnos');
+    lista.innerHTML = '';
+
+    let hoy = new Date();
+    let mes = hoy.getMonth() + 1;
+    let año = hoy.getFullYear();
+    let dias = new Date(año, mes, 0).getDate();
+
+    for (let d = 1; d <= dias; d++) {
+        let farmacia = obtenerFarmacia(d, mes);
+        let li = document.createElement('li');
+        li.innerText = `${d}/${mes} - ${farmacia}`;
+        lista.appendChild(li);
+    }
+
+    document.getElementById('calendario').style.display = 'block';
+}
+
+document.getElementById('verCalendario').onclick = generarCalendarioMes;
+document.addEventListener('DOMContentLoaded', mostrarTurnoHoy);
+</script>
+
+</body>
+</html>
