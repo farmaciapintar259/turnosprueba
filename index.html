@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Farmacia de Turno</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-
 <style>
 body {
     margin: 0;
-    font-family: 'Orbitron', sans-serif;
+    font-family: Arial, sans-serif; /* <-- AQUÍ CAMBIAMOS LA LETRA A ARIAL */
     background: radial-gradient(circle at top, #0f2027, #203a43, #2c5364);
     color: white;
     text-align: center;
@@ -24,7 +22,7 @@ h1 {
     text-shadow: 0 0 10px cyan;
 }
 
-/* Estilo para el subtítulo que pediste */
+/* Estilo para el subtítulo */
 .subtitulo {
     font-size: 0.75em;
     color: #a0aec0;
@@ -73,6 +71,7 @@ button {
     margin: 10px 0;
     padding: 12px;
     font-size: 1em;
+    font-family: Arial, sans-serif; /* Para asegurarnos que los botones también usen Arial */
     border-radius: 10px;
     border: none;
     background: linear-gradient(45deg, #00f2fe, #4facfe);
@@ -160,7 +159,7 @@ button:hover {
         <div id="farmaciaTelefono"></div>
     </div>
 
-    <!-- Nueva caja para el temporizador incorporada de forma natural -->
+    <!-- Caja para el temporizador -->
     <div class="caja-temporizador">
         <div>Siguiente turno (<span id="siguienteFarmacia" style="color: #fff; font-weight: bold;"></span>):</div>
         <div class="contador-reloj" id="contadorReloj">00h 00m 00s</div>
@@ -194,7 +193,6 @@ const farmacias = {
 };
 
 function obtenerFarmacia(dia, mes, año) {
-    // Si no se le pasa año, toma el actual por defecto (mantiene tu lógica intacta)
     año = año || new Date().getFullYear();
     const fecha = new Date(año, mes - 1, dia);
     const diaSemana = fecha.getDay(); // 0: Domingo, 1: Lunes... 6: Sábado
@@ -216,7 +214,7 @@ function obtenerFarmacia(dia, mes, año) {
         const fechaBaseSab = new Date(2026, 4, 2); // Sábado 2 de Mayo como referencia
         const semanasPasadas = Math.floor((fecha - fechaBaseSab) / (7 * 24 * 60 * 60 * 1000));
         let indice = semanasPasadas % 5;
-        if (indice < 0) indice += 5; // Manejo de fechas anteriores
+        if (indice < 0) indice += 5;
         return sabados[indice];
     }
 
@@ -231,19 +229,16 @@ function obtenerFarmacia(dia, mes, año) {
     }
 }
 
-// NUEVA FUNCIÓN PARA CALCULAR FECHAS SEGÚN LA REGLA DE LAS 8 AM
+// FUNCIÓN PARA CALCULAR FECHAS SEGÚN LA REGLA DE LAS 8 AM
 function obtenerFechasTurno() {
     let ahora = new Date();
     let fechaTurnoActual = new Date(ahora);
     let fechaTurnoSiguiente = new Date(ahora);
 
-    // Si es antes de las 8 de la mañana, el turno vigente es el del día anterior
     if (ahora.getHours() < 8) {
         fechaTurnoActual.setDate(fechaTurnoActual.getDate() - 1);
-        // El siguiente turno arranca hoy a las 8 AM
         fechaTurnoSiguiente.setHours(8, 0, 0, 0);
     } else {
-        // El turno de hoy ya empezó, el siguiente es mañana a las 8 AM
         fechaTurnoSiguiente.setDate(fechaTurnoSiguiente.getDate() + 1);
         fechaTurnoSiguiente.setHours(8, 0, 0, 0);
     }
@@ -254,7 +249,6 @@ function obtenerFechasTurno() {
 function mostrarTurnoHoy() {
     let fechas = obtenerFechasTurno();
     
-    // Obtenemos las farmacias pasando día, mes y año exactos
     let farmaciaHoy = obtenerFarmacia(fechas.actual.getDate(), fechas.actual.getMonth() + 1, fechas.actual.getFullYear());
     let farmaciaManana = obtenerFarmacia(fechas.siguiente.getDate(), fechas.siguiente.getMonth() + 1, fechas.siguiente.getFullYear());
 
@@ -270,14 +264,12 @@ function mostrarTurnoHoy() {
         window.open(farmacias[farmaciaHoy].mapa);
 }
 
-// NUEVO: SISTEMA DE CUENTA REGRESIVA (SE ACTUALIZA CADA SEGUNDO)
 function actualizarContador() {
     let fechas = obtenerFechasTurno();
     let ahora = new Date();
     let diferencia = fechas.siguiente - ahora;
 
     if (diferencia <= 0) {
-        // Si exacto pasamos las 8:00:00 AM, recalculamos la pantalla y los turnos solo
         mostrarTurnoHoy();
         return;
     }
@@ -310,11 +302,10 @@ function generarCalendarioMes() {
 
 document.getElementById('verCalendario').onclick = generarCalendarioMes;
 
-// Iniciamos todo al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     mostrarTurnoHoy();
     actualizarContador();
-    setInterval(actualizarContador, 1000); // Repetir el reloj cada 1 segundo
+    setInterval(actualizarContador, 1000);
 });
 </script>
 
